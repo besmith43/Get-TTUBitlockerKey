@@ -1,0 +1,11 @@
+BitLocker Drive Encryption: Configuration Tool version 10.0.19041
+Copyright (C) 2013 Microsoft Corporation. All rights reserved.
+
+Volume C: [OS]
+Key Protectors of Type Numerical Password
+
+    Numerical Password:
+      ID: {3FC0AC86-A0A7-485B-8A1E-6303FA999C46}
+      Password:
+        308242-158158-068079-716408-194304-090882-123123-579887
+
