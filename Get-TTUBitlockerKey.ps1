@@ -1,5 +1,6 @@
 param (
     [string]$SavePath = $PSScriptRoot,
+    [switch]$ScheduledTask,
     [switch]$Debug
 )
 
@@ -18,5 +19,11 @@ $password = $password.Trim()
 
 $hostname = hostname
 
-set-content -Path "$SavePath\$hostname.txt" -Value $password
-
+if ($ScheduledTask)
+{
+    set-content -Path "C:\Users\besmith\OneDrive - Tennessee Tech University\Bitlocker Key\$hostname.txt" -Value $password -Force
+}
+else
+{
+    set-content -Path "$SavePath\$hostname.txt" -Value $password -Force
+}
