@@ -1,15 +1,32 @@
-function Get-TTUBitlockerKey (
+function Get-TTUBitlockerKey {
+    <#
+		.SYNOPSIS
+            Uses manage-bde to retrieve the Bitlocker recovery key directly from the host
+    
+		.DESCRIPTION
+            Uses Powershell's invoke-command and manage-bde to get the Bitlocker recovery key directly from the host(s), but the machine must be online
+    
+        .PARAMETER ComputerNames
+            This parameter is to set the computer or computers that you need the bitlocker key of.
+			
+		.EXAMPLE
+            Get-TTUBitlockerKey -ComputerNames "HEND001B-M01"
+
+        .EXAMPLE
+            gblk -cn "HEND001B-M01", "HEND001B-M02"
+    
+		.NOTES
+			6/28/2021
+			-Created
+	#>
+
     param (
-        [Parameter(Mandatory=$false,
+        [Parameter(Mandatory=$true,
                     ValueFromPipeline=$true,
                     ValueFromPipelineByPropertyName=$true)]
-        [string]
-        $Hostname,
-        [Parameter(Mandatory=$false,
-                    ValueFromPipeline=$true,
-                    ValueFromPipelineByPropertyName=$true)]
+        [Alias('cn')]
         [string[]]
-        $Hostnames
+        $ComputerNames = $null
     )
 
     function Test-Hostname {
@@ -36,7 +53,7 @@ function Get-TTUBitlockerKey (
             $PassedHostname
         )
 
-        $session = New-PSSesion -ComputerName $PassedHostname
+        $session = New-PSSession -ComputerName $PassedHostname
 
         if (!$session)
         {
@@ -63,32 +80,46 @@ function Get-TTUBitlockerKey (
         return $password
     }
 
+    function Set-Cursor {
+        param (
+            $CursorPosition
+        )
+            $host.UI.RawUI.CursorPosition = $CursorPosition
+            Write-Host -NoNewline "                                                           "
+            $host.UI.RawUI.CursorPosition = $CursorPosition
+    }
+
     # main function
-    if ($Hostname -ne $null)
+    $BitlockerKeys = New-Object System.Collections.Generic.List[System.Object]
+
+    $ResetPosition = $host.UI.RawUI.CursorPosition
+
+    Write-Host "This may take a minute, so please be patient"
+    Start-Sleep -Seconds 1
+
+    foreach($comp in $ComputerNames)
     {
-        if (Test-Hostname -Host $Hostname)
+        Set-Cursor -CursorPosition $ResetPosition
+        Write-Host -NoNewLine "Testing if $comp is online"
+
+        if (Test-Hostname -PassedHostname $comp)
         {
-            $BitlockerKey = Get-BitlockerKey -PassedHostname $Hostname
-            Write-Output $BitlockerKey
+            Set-Cursor -CursorPosition $ResetPosition
+            Write-Host -NoNewLine "$comp is Online.  Getting Bitlocker Key"
+            $BitlockerKey = Get-BitlockerKey -PassedHostname $comp
+            $BitlockerKeys.Add($BitlockerKey)
+        }
+        else
+        {
+            Set-Cursor -CursorPosition $ResetPosition 
+            Write-Host "$comp is offline"
+            $ResetPosition = $host.UI.RawUI.CursorPosition
         }
     }
-    elseif ($Hostnames -ne $null)
-    {
-        [string[]]$BitlockerKeys
-
-        foreach($hostname in $Hostnames)
-        {
-            if (Test-Hostname -Host $hostname)
-            {
-                $BitlockerKey = Get-BitlockerKey -PassedHostname $hostname
-                $BitlockerKeys += $BitlockerKey
-            }
-        }
-
-        Write-Output $BitlockerKeys
-    }
-    else
-    {
-        Write-Error "No Parameters were given"
-    }
-)
+        
+    Set-Cursor -CursorPosition $ResetPosition
+    
+    Write-Output $BitlockerKeys.ToArray()
+}
+Export-ModuleMember -function Get-TTUBitlockerKey
+Set-Alias gblk Get-TTUBitlockerKey -scope "Global"
